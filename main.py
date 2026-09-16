@@ -131,6 +131,7 @@ def asteroids(date: str):
         velocity=close_approach["relative_velocity"]["kilometers_per_hour"]
         miss_distance=close_approach["miss_distance"]["kilometers"]
         absolute_magnitude=asteroid["absolute_magnitude_h"]
+        hazardus=asteroid["hazardous"]
         
     asteroid_info={
         "name":name,
@@ -140,6 +141,8 @@ def asteroids(date: str):
         "velocity":velocity,
         "miss_distance":miss_distance,
         "absolute_magnitude":absolute_magnitude
+
+
     }
     asteroid_list.append(asteroid_info)
 
@@ -151,4 +154,63 @@ def asteroids(date: str):
         "asteroid_count":len(asteroids),
         "asteroids":asteroid_list
     }
+
+print("SUMMARY ROUTE STARTED")
+@app.get("/asteroids/summary")
+def asteroid_summary(date: str):
+    url=(
+        f"https://api.nasa.gov/neo/rest/v1/feed"
+        f"?start_date={date}&end_date={date}&api_key=DEMO_KEY"
+    )
+
+    response=requests.get(url)
+    print("Nasa URL:",url)
+    print("NASA Status:",response.status_code)
+    print("NASA Response:",response.text)
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail="NASA API request failed"
+        )
+
+    data=response.json()
+    asteroids=data["near_earth_objects"][date]
+
+    largest_asteroid=max(
+        asteroids,
+        key=lambda asteroid: asteroid["estimated_diameter"]["kilometers"]
+        ["estimated_diameter_max"]
+    )
+
+    fastest_asteroid=max(
+        asteroids,
+        key=lambda asteroid: float(
+            asteroid["close_approach_data"][0]
+            ["relative_velocity"]["kilometers_per_hour"]
+
+        )
+    )
+
+    hazardous_asteroid=[
+        asteroid
+        for asteroid in asteroids
+        if asteroid["is_potentially_hazardous_asteroid"] is True
+    ]
+
+    return {
+        "date":date,
+        "total_asteroids":len(asteroids),
+        "hazardous_asteroids":len(hazardous_asteroid),
+        "largest_asteroid":largest_asteroid["name"],
+        "largest_diameter_km":largest_asteroid[
+            "estimated_diameter"
+        ]["kilometers"]["estimated_diameter_max"],
+        "fastest_asteroid":fastest_asteroid["name"],
+        "fastest_velocity_km_per_hour":fastest_asteroid[
+            "close_approach_data"
+        ][0]["relative_velocity"]["kilometers_per_hour"]
+    }
+
+
     
