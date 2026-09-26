@@ -131,9 +131,8 @@ def asteroids(date: str):
         velocity=close_approach["relative_velocity"]["kilometers_per_hour"]
         miss_distance=close_approach["miss_distance"]["kilometers"]
         absolute_magnitude=asteroid["absolute_magnitude_h"]
-        hazardus=asteroid["hazardous"]
         
-    asteroid_info={
+        asteroid_info={
         "name":name,
         "hazardous":hazardous,
         "min_diameter":min_diameter,
@@ -143,8 +142,8 @@ def asteroids(date: str):
         "absolute_magnitude":absolute_magnitude
 
 
-    }
-    asteroid_list.append(asteroid_info)
+        }
+        asteroid_list.append(asteroid_info)
 
     if hazardous is True:
         hazardous_status+=1
@@ -212,5 +211,30 @@ def asteroid_summary(date: str):
         ][0]["relative_velocity"]["kilometers_per_hour"]
     }
 
+import psycopg2
+@app.get("/database/asteroids")
+def get_database_asteroids():
+    connection=psycopg2.connect(dbname="nasa_explorer",user="nasa_user",password="nasa_password",host="localhost",port="5432")
+    cursor=connection.cursor()
+    cursor.execute("select id,name,hazardous,min_diameter,max_diameter,velocity,miss_distance,absolute_magnitude from asteroids")
+    rows=cursor.fetchall()
+    cursor.close()
+    connection.close()
 
-    
+    asteroid_list=[]
+    for row in rows:
+        asteroid_list.append({
+            "id":row[0],
+            "name":row[1],
+            "hazardous":row[2],
+            "min_diameter":row[3],
+            "max_diameter":row[5],
+            "velocity":row[5],
+            "miss_distance":row[6],
+            "absolute_magnitude":row[7]
+        })
+
+        return{
+            "count":len(asteroid_list),
+            "asteroids":asteroid_list
+        }
